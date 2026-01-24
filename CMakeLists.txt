@@ -38,3 +38,21 @@ target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib)
 # Enlazar las librerías necesarias con el ejecutable
 target_link_libraries(HelloSDL PRIVATE sdl3)
 target_link_libraries(HelloBox2D PRIVATE box2d)
+
+# =========================================================
+# 3. Copiar recursos (Imágenes y Fuentes)
+# =========================================================
+
+add_custom_command(TARGET HelloSDL POST_BUILD
+    # Copia la carpeta de imágenes
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/images"
+    "$<TARGET_FILE_DIR:HelloSDL>/images"
+    
+    # Copia la carpeta de fuentes
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/fonts"
+    "$<TARGET_FILE_DIR:HelloSDL>/fonts"
+    
+    COMMENT "Actualizando recursos (images/ y fonts/) en la carpeta build..."
+)
