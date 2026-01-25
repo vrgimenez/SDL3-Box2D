@@ -23,12 +23,12 @@ add_executable(HelloBox2D HelloBox2D.cpp)
 # Incluir los directorios de cabecera (headers)
 # SDL  y Box2D (donde están los archivos .h)
 target_include_directories(HelloSDL PRIVATE ${SDL_C_ROOT}/include)
-target_include_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/include)
+target_include_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/include ${SDL_C_ROOT}/include)
 
 
 # Directorio donde se encuentran los archivos .lib o .a
 target_link_directories(HelloSDL PRIVATE ${SDL_C_ROOT}/lib)
-target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib)
+target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib ${SDL_C_ROOT}/lib)
 
 # =========================================================
 # 2. Definir los ejecutables y sus dependencias
@@ -37,7 +37,7 @@ target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib)
 ## Build the example apps
 # Enlazar las librerías necesarias con el ejecutable
 target_link_libraries(HelloSDL PRIVATE sdl3)
-target_link_libraries(HelloBox2D PRIVATE box2d)
+target_link_libraries(HelloBox2D PRIVATE box2d sdl3)
 
 # =========================================================
 # 3. Copiar recursos (Imágenes y Fuentes)
