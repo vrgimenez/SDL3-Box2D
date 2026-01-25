@@ -67,6 +67,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     b2BodyDef bodyDef = b2DefaultBodyDef();
     bodyDef.type = b2_dynamicBody;
     bodyDef.position = (b2Vec2){0.0f, 8.0f};
+    float angle = B2_PI / 6.0f; // 30 degrees
+    bodyDef.rotation = b2MakeRot(angle);
     bodyId = b2CreateBody(worldId, &bodyDef);
 
     // create and attach a polygon shape
@@ -75,6 +77,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     // create a shape definition for the box
     b2ShapeDef shapeDef = b2DefaultShapeDef();
     shapeDef.density = 1.0f;
+    shapeDef.material.restitution = 0.3f;
     shapeDef.material.friction = 0.3f;
 
     // Using the shape definition, create the shape
@@ -161,12 +164,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
+    SDL_FPoint center;
     SDL_FRect dst_rect;
 
     currentTime = SDL_GetTicks();
     if (currentTime > lastTime + 16)  // 62.5fps
     {
-
         /* SDL as you can see from this, rendering draws over whatever was drawn before it. */
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);  /* black, full alpha */
         SDL_RenderClear(renderer);  /* start with a blank canvas. */
@@ -175,7 +178,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         b2World_Step(worldId, timeStep, subStepCount);
         position = b2Body_GetPosition(bodyId);
         rotation = b2Body_GetRotation(bodyId);
-        //printf("x:%4.2f y:%4.2f angle:%4.2f ", position.x, position.y, b2Rot_GetAngle(rotation));
+        //printf("x:%4.2f y:%4.2f angle:%4.2f ", position.x, position.y, b2Rot_GetAngle(rotation) * 180 / B2_PI);
 
         /* SDL draw the static texture */
         dst_rect.x = ((float) (WINDOW_WIDTH - texture_width)) / 2.0f;
@@ -185,7 +188,10 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         dst_rect.w = (float) texture_width;
         dst_rect.h = (float) texture_height;
         //printf("tx:%4.2f ty:%4.2f\n", dst_rect.x, dst_rect.y);
-        SDL_RenderTexture(renderer, texture, NULL, &dst_rect);
+        /* rotate it around the center of the texture; you can rotate it from a different point, too! */
+        center.x = texture_width / 2.0f;
+        center.y = texture_height / 2.0f;
+        SDL_RenderTextureRotated(renderer, texture, NULL, &dst_rect, -b2Rot_GetAngle(rotation) * 180 / B2_PI, &center, SDL_FLIP_NONE);
 
         /* SDL put it all on the screen! */
         SDL_RenderPresent(renderer);
