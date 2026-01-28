@@ -1,5 +1,6 @@
 /* System includes */
 #include <iostream>
+#include <memory>
 
 /* B2D includes */
 #include "box2d/base.h"
@@ -124,11 +125,18 @@ class DickButt {
             SDL_RenderTextureRotated(renderer, texture, NULL, &dst_rect, -b2Rot_GetAngle(rotation) * 180 / B2_PI, &center, SDL_FLIP_NONE);
         }
 };
-DickButt dickButt[2];
+
+struct MyApp {
+    std::unique_ptr<DickButt> dickButt[2];
+    // Aquí irían otras cosas: texturas, ventana, etc.
+};
 
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
+    MyApp *app = new MyApp();
+    *appstate = app;
+
     /* --- B2D initialization --- */
     // https://box2d.org/documentation/hello.html
     std::cout << "Hello SDL3-Box2D World!" << std::endl;
@@ -159,8 +167,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 
     /* Creating Dynamic Bodies */
-    dickButt[0].CreateBody(worldId, {0.0f, 8.0f}, B2_PI / 6.0f);
-    dickButt[1].CreateBody(worldId, {-1.0f, 7.0f}, B2_PI / 5.0f);
+    app->dickButt[0] = std::make_unique<DickButt>();
+    app->dickButt[1] = std::make_unique<DickButt>();
+    app->dickButt[0]->CreateBody(worldId, {0.0f, 8.0f}, B2_PI / 6.0f);
+    app->dickButt[1]->CreateBody(worldId, {-1.0f, 7.0f}, B2_PI / 5.0f);
 
     /* Simulating the World */
     // setting time step
@@ -191,10 +201,10 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!dickButt[0].LoadTexture()) {
+    if (!app->dickButt[0]->LoadTexture()) {
         return SDL_APP_FAILURE;
     }
-    if (!dickButt[1].LoadTexture()) {
+    if (!app->dickButt[1]->LoadTexture()) {
         return SDL_APP_FAILURE;
     }
 
@@ -221,6 +231,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
+    MyApp *app = (MyApp*)appstate;
+
     currentTime = SDL_GetTicks();
     if (currentTime > lastTime + 16)  // 62.5fps
     {
@@ -230,12 +242,14 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
         /* B2D simulation loop */
         b2World_Step(worldId, timeStep, subStepCount);
-        dickButt[0].GetBodyTransform();
-        dickButt[1].GetBodyTransform();
+        for(int i = 0; i < 2; i++) {
+            if (app->dickButt[i]) {
+                app->dickButt[i]->GetBodyTransform();
 
-        /* SDL draw the static texture */
-        dickButt[0].RenderTextureRotated(renderer);
-        dickButt[1].RenderTextureRotated(renderer);
+                /* SDL draw the static texture */
+                app->dickButt[i]->RenderTextureRotated(renderer);
+            }
+        }
 
         /* SDL put it all on the screen! */
         SDL_RenderPresent(renderer);
