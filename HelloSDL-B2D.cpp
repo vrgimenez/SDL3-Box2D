@@ -14,6 +14,9 @@
 /* SDL We will use this renderer to draw into this window every frame. */
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
+static SDL_Texture *gndTexture = NULL;
+static int gndTexture_width = 0;
+static int gndTexture_height = 0;
 static Uint64 lastTime = 0, currentTime;
 
 #define WINDOW_WIDTH 800
@@ -28,34 +31,45 @@ int subStepCount;
 
 /* DickButt Class */
 class DickButt {
-    public:
+    private:
         /* B2D attributes */
         b2BodyId bodyId;
         b2Vec2 position;
         b2Rot rotation;
-        float angle;
         /* SDL attributes */
         SDL_Texture *texture = NULL;
         int texture_width = 0;
         int texture_height = 0;
+
+    public:
         /* DickButt Methods */
-        // Constructor
+        // Default Constructor
         DickButt() {
-            std::cout << "Constructor Called" << std::endl;
+            std::cout << "Default Constructor Called" << std::endl;
+        }
+        // Parametrized Constructor
+        DickButt(b2Vec2 position, float angle) {
+            std::cout << "Parametrized Constructor Called" << std::endl;
+            CreateBody(position, angle);
+            if(!LoadTexture()) {
+                throw std::runtime_error("Couldn't load or create static texture");
+            }
         }
         // Destructor
         ~DickButt() {
             std::cout << "Destructor Called" << std::endl;
             /* SDL will clean up the window/renderer for us. */
             SDL_DestroyTexture(texture);
-        };
+
+            /* B2D destroy the world */
+            b2DestroyWorld(worldId);
+        }
         // Create B2D Body
-        void CreateBody(b2WorldId worldId, b2Vec2 pos, float rad) {
+        void CreateBody(b2Vec2 position, float angle) {
             // create the body
             b2BodyDef bodyDef = b2DefaultBodyDef();
             bodyDef.type = b2_dynamicBody;
-            bodyDef.position = pos;
-            angle = rad;
+            bodyDef.position = position;
             bodyDef.rotation = b2MakeRot(angle);
             bodyId = b2CreateBody(worldId, &bodyDef);
 
@@ -76,7 +90,7 @@ class DickButt {
             position = b2Body_GetPosition(bodyId);
             rotation = b2Body_GetRotation(bodyId);
         }
-        // Load SDL Texture
+        // Load SDL Body Texture
         bool LoadTexture() {
             SDL_Surface *surface = NULL;
             char *png_path = NULL;
@@ -134,9 +148,6 @@ struct MyApp {
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
-    MyApp *app = new MyApp();
-    *appstate = app;
-
     /* --- B2D initialization --- */
     // https://box2d.org/documentation/hello.html
     std::cout << "Hello SDL3-Box2D World!" << std::endl;
@@ -166,13 +177,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     b2ShapeDef groundShapeDef = b2DefaultShapeDef();
     b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 
-    /* Creating Dynamic Bodies */
-    app->dickButt[0] = std::make_unique<DickButt>();
-    app->dickButt[1] = std::make_unique<DickButt>();
-    app->dickButt[0]->CreateBody(worldId, {0.0f, 8.0f}, B2_PI / 6.0f);
-    app->dickButt[1]->CreateBody(worldId, {-1.0f, 7.0f}, B2_PI / 5.0f);
-
-    /* Simulating the World */
+    /* Simulation */
     // setting time step
     timeStep = 1.0f / 60.0f;
 
@@ -201,10 +206,39 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
         return SDL_APP_FAILURE;
     }
 
-    if (!app->dickButt[0]->LoadTexture()) {
+    // Load SDL Ground Floor
+    SDL_Surface *surface = NULL;
+    char *png_path = NULL;
+
+    SDL_asprintf(&png_path, "%simages/ground.png", SDL_GetBasePath());  /* allocate a string of the full file path */
+    surface = SDL_LoadPNG(png_path);
+    if (!surface) {
+        SDL_Log("Couldn't load png: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
-    if (!app->dickButt[1]->LoadTexture()) {
+
+    SDL_free(png_path);  /* done with this, the file is loaded. */
+
+    gndTexture_width = surface->w / 2;
+    gndTexture_height = surface->h / 2;
+
+    gndTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (!gndTexture) {
+        SDL_Log("Couldn't create static texture: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+
+    SDL_DestroySurface(surface);  /* done with this, the texture has a copy of the pixels now. */
+
+    /* Creating Dynamic Bodies (B2D and SDL) */
+    try {
+        MyApp *app = new MyApp();
+        *appstate = app;
+        app->dickButt[0] = std::make_unique<DickButt>((b2Vec2){ 0.0f, 8.0f}, B2_PI / 6.0f);
+        app->dickButt[1] = std::make_unique<DickButt>((b2Vec2){-1.0f, 7.0f}, B2_PI / 5.0f);
+    }
+    catch (const std::exception& e) {
+        SDL_Log("Error: %s", e.what());
         return SDL_APP_FAILURE;
     }
 
@@ -232,6 +266,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
     MyApp *app = (MyApp*)appstate;
+    SDL_FRect gndDst_rect;
 
     currentTime = SDL_GetTicks();
     if (currentTime > lastTime + 16)  // 62.5fps
@@ -239,6 +274,16 @@ SDL_AppResult SDL_AppIterate(void *appstate)
         /* SDL as you can see from this, rendering draws over whatever was drawn before it. */
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);  /* black, full alpha */
         SDL_RenderClear(renderer);  /* start with a blank canvas. */
+
+        /* SDL draw ground floor */
+        gndDst_rect.y = ((float) (WINDOW_HEIGHT - gndTexture_height)) / 2.0f;
+        gndDst_rect.y -= -8.0f * PPM;
+        gndDst_rect.w = (float) gndTexture_width;
+        gndDst_rect.h = (float) gndTexture_height;
+        for(char tiles = -3; tiles < 4; ++tiles) {
+            gndDst_rect.x = ((float) (WINDOW_WIDTH - gndTexture_width)) / 2.0f + gndTexture_width * tiles;
+            SDL_RenderTexture(renderer, gndTexture, NULL, &gndDst_rect);
+        }
 
         /* B2D simulation loop */
         b2World_Step(worldId, timeStep, subStepCount);
@@ -263,9 +308,6 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result)
 {
-    /* SDL destroy the texture */
-    //dickButt.~DickButt();     // called on exit/close
-
-    /* B2D destroy the world */
-    b2DestroyWorld(worldId);
+    MyApp *app = (MyApp*)appstate;
+    delete app;     // this calls the destructor
 }
