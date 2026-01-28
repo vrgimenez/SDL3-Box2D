@@ -13,8 +13,7 @@ set(SDL_C_ROOT "c:/_Libz/sdl")
 set(BOX2D_CPP_ROOT "c:/_Libz/box2d")
 
 # Añade ejecutables
-add_executable(HelloSDL HelloSDL.cpp)
-add_executable(HelloBox2D HelloBox2D.cpp)
+add_executable(HelloSDL-B2D HelloSDL-B2D.cpp)
 
 # =========================================================
 # 1. Incluir directorios y librerías de SDL y Box2D
@@ -22,13 +21,11 @@ add_executable(HelloBox2D HelloBox2D.cpp)
 
 # Incluir los directorios de cabecera (headers)
 # SDL  y Box2D (donde están los archivos .h)
-target_include_directories(HelloSDL PRIVATE ${SDL_C_ROOT}/include)
-target_include_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/include ${SDL_C_ROOT}/include)
+target_include_directories(HelloSDL-B2D PRIVATE ${BOX2D_CPP_ROOT}/include ${SDL_C_ROOT}/include)
 
 
 # Directorio donde se encuentran los archivos .lib o .a
-target_link_directories(HelloSDL PRIVATE ${SDL_C_ROOT}/lib)
-target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib ${SDL_C_ROOT}/lib)
+target_link_directories(HelloSDL-B2D PRIVATE ${BOX2D_CPP_ROOT}/lib ${SDL_C_ROOT}/lib)
 
 # =========================================================
 # 2. Definir los ejecutables y sus dependencias
@@ -36,23 +33,22 @@ target_link_directories(HelloBox2D PRIVATE ${BOX2D_CPP_ROOT}/lib ${SDL_C_ROOT}/l
 
 ## Build the example apps
 # Enlazar las librerías necesarias con el ejecutable
-target_link_libraries(HelloSDL PRIVATE sdl3)
-target_link_libraries(HelloBox2D PRIVATE box2d sdl3)
+target_link_libraries(HelloSDL-B2D PRIVATE box2d sdl3)
 
 # =========================================================
 # 3. Copiar recursos (Imágenes y Fuentes)
 # =========================================================
 
-add_custom_command(TARGET HelloSDL POST_BUILD
+add_custom_command(TARGET HelloSDL-B2D POST_BUILD
     # Copia la carpeta de imágenes
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/images"
-    "$<TARGET_FILE_DIR:HelloSDL>/images"
+    "$<TARGET_FILE_DIR:HelloSDL-B2D>/images"
     
     # Copia la carpeta de fuentes
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/fonts"
-    "$<TARGET_FILE_DIR:HelloSDL>/fonts"
+    "$<TARGET_FILE_DIR:HelloSDL-B2D>/fonts"
     
     COMMENT "Actualizando recursos (images/ y fonts/) en la carpeta build..."
 )
