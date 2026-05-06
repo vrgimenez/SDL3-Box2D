@@ -32,11 +32,11 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build build
 
-      - name: Upload Linux Build
+      - name: Upload Linux Binary
         uses: actions/upload-artifact@v4
         with:
-          name: game-linux
-          path: build/HelloSDL-B2D* # Cambiar por el nombre de tu ejecutable
+          name: bin-linux
+          path: build/HelloSDL-B2D # Reemplaza con tu nombre de ejecutable
 
   # --- JOB PARA WINDOWS (UCRT64) ---
   build-windows:
@@ -66,8 +66,52 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build build
 
-      - name: Upload Windows Build
+      - name: Upload Windows Binary & DLL
         uses: actions/upload-artifact@v4
         with:
-          name: game-windows
-          path: build/*.exe
+          name: bin-windows
+          path: |
+            build/*.exe
+            build/*.dll
+
+  # --- JOB DE EMPAQUETADO FINAL ---
+  package:
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-windows] # Espera a que los anteriores terminen
+    steps:
+      - uses: actions/checkout@v4 # Para obtener las carpetas /fonts e /images
+
+      - name: Download All Binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: downloads
+
+      - name: Create Release Structure
+        run: |
+          # Crear carpetas para los paquetes finales
+          mkdir -p release-linux/fonts release-linux/images
+          mkdir -p release-windows/fonts release-windows/images
+
+          # Copiar Assets (desde el repo)
+          cp -r fonts/* release-linux/fonts/ || true
+          cp -r images/* release-linux/images/ || true
+          cp -r fonts/* release-windows/fonts/ || true
+          cp -r images/* release-windows/images/ || true
+
+          # Copiar Binario Linux
+          cp downloads/bin-linux/* release-linux/
+
+          # Copiar Binario Windows y SDL3.dll
+          cp downloads/bin-windows/* release-windows/
+
+      - name: Zip Linux Release
+        run: zip -r game-linux.zip release-linux/
+
+      - name: Zip Windows Release
+        run: zip -r game-windows.zip release-windows/
+
+      - name: Upload Final ZIPs
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-game-packages
+          path: "*.zip"
