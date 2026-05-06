@@ -18,8 +18,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build libasound2-dev libpulse-dev libaudio-dev \
-          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libgl1-mesa-dev libdbus-1-dev \
-          libudev-dev libwayland-dev libxkbcommon-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev libxinerama-dev \
+          libgl1-mesa-dev libdbus-1-dev libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache Deps
         uses: actions/cache@v4
