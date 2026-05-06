@@ -2,53 +2,62 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Nombre del proyecto
-project(SDL3-Box2D LANGUAGES CXX)
+project(HelloSDL-B2D LANGUAGES CXX)
 
 # Establecer el estándar C++ (usa un estándar moderno)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Directorio base donde se encuentra la librería SDL y Box2D
-set(SDL_C_ROOT "c:/_Libz/sdl")
-set(BOX2D_CPP_ROOT "c:/_Libz/box2d")
+# Cargar el módulo FetchContent
+include(FetchContent)
+
+# SDL3
+FetchContent_Declare(
+  SDL3
+  GIT_REPOSITORY https://github.com/libsdl-org/SDL
+  GIT_TAG        release-3.4.0  # Se puede usar un hash específico (main) o una versión como 'release-3.2.0'
+)
+message(STATUS "Fetching SDL3 Content...")
+FetchContent_MakeAvailable(SDL3)
+
+# Box2D
+FetchContent_Declare(
+  box2d
+  GIT_REPOSITORY https://github.com/erincatto/box2d
+  GIT_TAG        v3.1.1  # O una versión específica como v3.0.0
+)
+message(STATUS "Fetching Box2D Content...")
+FetchContent_MakeAvailable(box2d)
 
 # Añade ejecutables
-add_executable(HelloSDL-B2D HelloSDL-B2D.cpp)
+add_executable(${PROJECT_NAME} WIN32 HelloSDL-B2D.cpp)
 
-# =========================================================
-# 1. Incluir directorios y librerías de SDL y Box2D
-# =========================================================
+# FetchContent exporta el target como 'SDL3::SDL3-shared' o 'SDL3::SDL3-static'
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3-shared box2d::box2d)
 
-# Incluir los directorios de cabecera (headers)
-# SDL  y Box2D (donde están los archivos .h)
-target_include_directories(HelloSDL-B2D PRIVATE ${BOX2D_CPP_ROOT}/include ${SDL_C_ROOT}/include)
+# Copia la DLL de SDL3 al directorio del ejecutable automáticamente
+set(DLLS_TO_COPY
+    SDL3::SDL3-shared
+)
+foreach(LIB ${DLLS_TO_COPY})
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:${LIB}>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+    )
+endforeach()
 
-
-# Directorio donde se encuentran los archivos .lib o .a
-target_link_directories(HelloSDL-B2D PRIVATE ${BOX2D_CPP_ROOT}/lib ${SDL_C_ROOT}/lib)
-
-# =========================================================
-# 2. Definir los ejecutables y sus dependencias
-# =========================================================
-
-## Build the example apps
-# Enlazar las librerías necesarias con el ejecutable
-target_link_libraries(HelloSDL-B2D PRIVATE box2d sdl3)
-
-# =========================================================
-# 3. Copiar recursos (Imágenes y Fuentes)
-# =========================================================
-
-add_custom_command(TARGET HelloSDL-B2D POST_BUILD
+# Copia recursos (Imágenes y Fuentes)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     # Copia la carpeta de imágenes
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/images"
-    "$<TARGET_FILE_DIR:HelloSDL-B2D>/images"
-    
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/images"
+
     # Copia la carpeta de fuentes
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_CURRENT_SOURCE_DIR}/fonts"
-    "$<TARGET_FILE_DIR:HelloSDL-B2D>/fonts"
-    
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/fonts"
+
     COMMENT "Actualizando recursos (images/ y fonts/) en la carpeta build..."
 )
