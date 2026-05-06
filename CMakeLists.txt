@@ -15,6 +15,9 @@ FetchContent_Declare(
 # Desactivamos tests y ejemplos de SDL3 para acelerar el build en GitHub
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+# Desactivamos soporte para screensaver
+# set(SDL_X11_XINERAMA OFF CACHE BOOL "" FORCE)
+# set(SDL_X11_XSCRNSAVER OFF CACHE BOOL "" FORCE)
 message(STATUS "Fetching SDL3 Content...")
 FetchContent_MakeAvailable(SDL3)
 
