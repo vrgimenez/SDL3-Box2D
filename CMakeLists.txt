@@ -15,17 +15,19 @@ FetchContent_Declare(
 # Desactivamos tests y ejemplos de SDL3 para acelerar el build en GitHub
 set(SDL_TEST OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+message(STATUS "Fetching SDL3 Content...")
 FetchContent_MakeAvailable(SDL3)
 
 # --- Box2D ---
 FetchContent_Declare(
   box2d
   GIT_REPOSITORY https://github.com/erincatto/box2d
-  GIT_TAG        v3.0.0 # Versión estable
+  GIT_TAG        v3.1.1  # O una versión específica como v3.0.0
 )
 # Desactivar tests de Box2D
 set(BOX2D_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BOX2D_BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+message(STATUS "Fetching Box2D Content...")
 FetchContent_MakeAvailable(box2d)
 
 # --- EJECUTABLE ---
