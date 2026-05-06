@@ -1,0 +1,73 @@
+name: CMake GCC Multiplatform (UCRT64)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Permite forzar la creación manual desde la web
+
+jobs:
+  # --- JOB PARA LINUX ---
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build libasound2-dev libpulse-dev libaudio-dev \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libgl1-mesa-dev libdbus-1-dev \
+          libudev-dev libwayland-dev libxkbcommon-dev
+
+      - name: Cache Deps
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: linux-cmake-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Configure & Build
+        run: |
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+          cmake --build build
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-linux
+          path: build/HelloSDL-B2D* # Cambiar por el nombre de tu ejecutable
+
+  # --- JOB PARA WINDOWS (UCRT64) ---
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+
+      - name: Cache Deps
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: windows-cmake-${{ hashFiles('**/CMakeLists.txt') }}
+
+      - name: Configure & Build
+        shell: msys2 {0}
+        run: |
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
+          cmake --build build
+
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-windows
+          path: build/*.exe
