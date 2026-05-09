@@ -39,7 +39,7 @@ jobs:
           cp -r images dist/
           cp -r fonts dist/
 
-      - name: Upload Linux Game
+      - name: Upload Linux Demo
         uses: actions/upload-artifact@v4
         with:
           name: demo-linux
@@ -82,8 +82,51 @@ jobs:
           cp -r images dist/
           cp -r fonts dist/
 
-      - name: Upload Windows Game
+      - name: Upload Windows Demo
         uses: actions/upload-artifact@v4
         with:
           name: demo-windows
           path: dist/
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Necesario para crear el Release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: get_version
+        run: |
+          # Busca la línea de PRODUCT_VERSION_STR y captura el contenido de las comillas
+          VERSION=$(sed -n 's/.*PRODUCT_VERSION_STR.*"\([^"]*\)".*/\1/p' version.h)
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: No se pudo extraer la versión de PRODUCT_VERSION_STR en version.h"
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versión detectada: $VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true # <--- Esto crea el changelog solo
+          files: |
+            demo-linux/*
+            demo-windows/*
+          body: |
+            ## 🚀 Demo Build (Automated)
+            Esta es la versión **v${{ steps.get_version.outputs.VERSION }}** compilada automáticamente.
+            
+            ### 🛠 Instalación:
+            1. Descarga el zip de tu plataforma.
+            2. Descomprime y ejecuta el binario.
+            
+            ---
+            *Los cambios detallados se encuentran abajo:*

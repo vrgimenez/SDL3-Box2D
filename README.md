@@ -1,5 +1,8 @@
 # Hello SDL Graphics And Box2D Physics
 
+![Latest Release](https://shields.io)
+![Platform](https://shields.io)
+
 An simple example of integrating Box2D physics with SDL graphics.
 
 ## Introduction
