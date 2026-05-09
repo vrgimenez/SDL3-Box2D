@@ -18,8 +18,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake ninja-build libasound2-dev libpulse-dev libaudio-dev \
-          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev libxinerama-dev \
-          libgl1-mesa-dev libdbus-1-dev libudev-dev libwayland-dev libxkbcommon-dev
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev \
+          libxinerama-dev libxxf86vm-dev libgl1-mesa-dev libdbus-1-dev libudev-dev libwayland-dev libxkbcommon-dev
 
       - name: Cache Deps
         uses: actions/cache@v4
@@ -32,18 +32,18 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build build
 
-      - name: Prepare Game Folder
+      - name: Prepare Artifact
         run: |
-          mkdir -p demo-linux/images demo-linux/fonts
-          cp build/HelloSDL-B2D demo-linux/
-          cp -r images/* demo-linux/images/ || true
-          cp -r fonts/* demo-linux/fonts/ || true
+          mkdir dist
+          cp build/HelloSDL-B2D dist/
+          cp -r images dist/
+          cp -r fonts dist/
 
       - name: Upload Linux Game
         uses: actions/upload-artifact@v4
         with:
           name: demo-linux
-          path: demo-linux/
+          path: dist/
 
   # --- JOB PARA WINDOWS (UCRT64) ---
   build-windows:
@@ -73,17 +73,17 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
           cmake --build build
 
-      - name: Prepare Game Folder
-        shell: bash # Usamos bash para consistencia en los comandos cp
+      - name: Prepare Artifact
+        shell: bash
         run: |
-          mkdir -p demo-windows/images demo-windows/fonts
-          cp build/*.exe demo-windows/
-          cp build/*.dll demo-windows/
-          cp -r images/* demo-windows/images/ || true
-          cp -r fonts/* demo-windows/fonts/ || true
+          mkdir dist
+          cp build/*.exe dist/
+          cp build/*.dll dist/
+          cp -r images dist/
+          cp -r fonts dist/
 
       - name: Upload Windows Game
         uses: actions/upload-artifact@v4
         with:
           name: demo-windows
-          path: demo-windows/
+          path: dist/
