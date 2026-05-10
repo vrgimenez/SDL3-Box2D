@@ -39,7 +39,7 @@ jobs:
           cp -r images dist/
           cp -r fonts dist/
 
-      - name: Upload Linux Game
+      - name: Upload Linux Demo
         uses: actions/upload-artifact@v4
         with:
           name: demo-linux
@@ -82,8 +82,65 @@ jobs:
           cp -r images dist/
           cp -r fonts dist/
 
-      - name: Upload Windows Game
+      - name: Upload Windows Demo
         uses: actions/upload-artifact@v4
         with:
           name: demo-windows
           path: dist/
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Necesario para crear el Release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version
+        id: get_version
+        run: |
+          # Busca la línea de PRODUCT_VERSION_STR y captura el contenido de las comillas
+          VERSION=$(sed -n 's/.*PRODUCT_VERSION_STR.*"\([^"]*\)".*/\1/p' version.h | tr -d '\r')
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: No se pudo extraer la versión de PRODUCT_VERSION_STR en version.h"
+            exit 1
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versión detectada: $VERSION"
+
+      # 1. Descargamos los artefactos que generaron los jobs anteriores
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist-files # Los baja todos a esta carpeta
+
+      # 2. Comprimimos cada plataforma para que el Release tenga archivos limpios
+      - name: Zip final packages
+        run: |
+          cd dist-files/demo-linux && zip -r ../../demo-linux-v${{ steps.get_version.outputs.VERSION }}.zip . && cd ../..
+          cd dist-files/demo-windows && zip -r ../../demo-windows-v${{ steps.get_version.outputs.VERSION }}.zip . && cd ../..
+
+      # 3. Publicamos en el Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: Release v${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true # <--- Esto crea el changelog solo
+          files: |
+            demo-linux-v${{ steps.get_version.outputs.VERSION }}.zip
+            demo-windows-v${{ steps.get_version.outputs.VERSION }}.zip
+          body: |
+            ## 🚀 Demo Build (Automated)
+            This is version **v${{ steps.get_version.outputs.VERSION }}** compiled automatically.
+
+            ### 🛠 Installation:
+            1. Download the zip file for your platform.
+            2. Unzip and run the binary.
+
+            ---
+            *Detailed changes are listed below:*
+
